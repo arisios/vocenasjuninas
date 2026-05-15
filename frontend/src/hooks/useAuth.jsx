@@ -24,13 +24,21 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const register = async (payload) => {
+    const { data } = await api.post('/auth/register', payload);
+    localStorage.setItem('vnj_token', data.token);
+    localStorage.setItem('vnj_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = () => {
     localStorage.removeItem('vnj_token');
     localStorage.removeItem('vnj_user');
     setUser(null);
   };
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, register, logout }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { findUserByLogin } = require('../../../../shared/users-db');
+const { findUserByLogin, createUser } = require('../../../../shared/users-db');
 const { JWT_SECRET, authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -23,5 +23,20 @@ router.post('/login', (req, res) => {
 });
 
 router.get('/me', authMiddleware, (req, res) => res.json({ user: req.user }));
+
+router.post('/register', (req, res) => {
+  const { name, phone, instagram, password } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Informe seu nome' });
+  if (!phone?.trim() && !instagram?.trim()) return res.status(400).json({ error: 'Informe @instagram ou telefone' });
+  if (!password || password.length < 6) return res.status(400).json({ error: 'Senha deve ter mínimo 6 caracteres' });
+  try {
+    const user = createUser({ name: name.trim(), phone: phone?.trim() || null, instagram: instagram?.trim() || null, password });
+    const token = require('jsonwebtoken').sign({ id: user.id, instagram: user.instagram, name: user.name, role: user.role }, require('../middleware/auth').JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: user.id, instagram: user.instagram, name: user.name, role: user.role } });
+  } catch (err) {
+    if (err.message?.includes('UNIQUE')) return res.status(400).json({ error: 'Instagram ou telefone já cadastrado' });
+    res.status(500).json({ error: 'Erro ao criar conta' });
+  }
+});
 
 module.exports = router;
